@@ -86,6 +86,10 @@
 
     function main() {
         console.clear();
+
+        // 先执行一次
+        oneClickSend();
+
         // 外部包裹的盒子
         let startScriptDiv = document.createElement('div');
         startScriptDiv.className = 'condition-filter-select';
