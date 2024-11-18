@@ -13,6 +13,10 @@
     'use strict';
     let countAllJobs = 0;
     let countSendJobs = 0;
+    let hightightKeyWords = [
+        "php", "PHP", "前端", "双休", "月休", "全栈", "后端", "技术主管",
+        "程序员", "技术总监", "服务端", "软件开发", "后台开发", "web开发"
+    ];
 
     function oneClickSend() {
         console.log("执行了oneClickSend函数");
@@ -27,14 +31,39 @@
         console.log(`已经浏览了${countAllJobs}个岗位，已沟通了${countSendJobs}个岗位`);
 
         for (var i = curJobs.length - 1; i >= 0; i--) {
+            // 当前循环处理的职位信息
             let curJob = curJobs[i];
 
+            // 当前工作信息
+            let curJobInfo = curJob.previousElementSibling;
+            // 职位名称
+            let curJobName = curJobInfo.childNodes[0].childNodes[0]
+
+            // 检索是否含有关键字
+            for (var j = hightightKeyWords.length - 1; j >= 0; j--) {
+                if (curJobName.innerText.indexOf(hightightKeyWords[j]) !== -1) {
+                    // 符合条件设置
+                    curJobInfo.style.backgroundColor = "lightcoral";
+                    curJobName.style.color = "white";
+                    curJobName.nextElementSibling.style.color = "white";
+                    break;
+                }
+            }
+
             let btn = document.createElement('button');
+
+            // 样式处理
+            btn.style.border = "1px solid #00bebd";
+            btn.style.backgroundColor = "#dbf5f2";
+            btn.style.borderRadius = "7px";
+            btn.style.padding = "5px";
+
             btn.setAttribute('class', 'mySendJobBtn')
             btn.innerText = '沟通';
             // 添加按钮
             curJob.append(btn)
 
+            // 点击事件
             btn.onclick = function() {
                 // 进入职位详情
                 curJob.click()
@@ -60,7 +89,8 @@
                             console.log("投递成功")
 
                             countSendJobs += 1;
-                        }, 1000)
+                            btn.style.backgroundColor = "#fff";
+                        }, 500)
                     } else {
                         console.log("此岗位已沟通过")
                     }
