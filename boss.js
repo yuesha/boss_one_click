@@ -5,6 +5,7 @@
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.zhipin.com/web/geek/job-recommend*
+// @match        https://www.zhipin.com/web/geek/chat
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=zhipin.com
 // @grant        none
 // ==/UserScript==
@@ -13,13 +14,20 @@
     'use strict';
     let countAllJobs = 0;
     let countSendJobs = 0;
+    let countAllMsgs = 0;
+    let countSendMsgs = 0;
+    let waitDealMsgs = [];
+
+    // 高亮关键词
     let hightightKeyWords = [
         "php", "PHP", "前端", "双休", "月休", "全栈", "后端", "技术主管",
-        "程序员", "技术总监", "服务端", "软件开发", "后台开发", "web开发"
+        "程序员", "技术总监", "服务端", "软件开发", "后台开发", "web开发",
+        "开发工程师", "软件工程师", "技术经理", "技术合伙人"
     ];
 
-    function oneClickSend() {
-        console.log("执行了oneClickSend函数");
+    // 一键发起沟通
+    function oneClickStartChat() {
+        console.log("执行了oneClickStartChat函数");
         // 所有的职位
         let curJobs = document.getElementsByClassName('job-card-footer')
 
@@ -92,6 +100,7 @@
                             btn.style.backgroundColor = "#fff";
                         }, 500)
                     } else {
+                        btn.style.backgroundColor = "#fff";
                         console.log("此岗位已沟通过")
                     }
                 }, 500)
@@ -99,6 +108,59 @@
         }
     }
 
+    // 一键发送常用语
+    function oneClickSendMsg() {
+        // console.log("执行了oneClickSendMsg函数");
+
+        // 所有的消息
+        let allMsgs = document.getElementsByClassName('last-msg-text')
+
+        if (allMsgs.length < 1) {
+            alert("拿不到消息列表")
+            return ;
+        }
+        // countAllMsgs += allMsgs.length;
+        // console.log(`已经浏览了${countAllMsgs}个消息，已发送了${countSendMsgs}个常用语`);
+
+        for (var i = allMsgs.length - 1; i >= 0; i--) {
+            // 当前循环处理的信息
+            let curMsg = allMsgs[i];
+
+            // 已经进行过沟通的，不再发送
+            if (curMsg.innerText != "您好，我对这份工作非常感兴趣，希望可以有机会与您进一步沟通。") {
+                continue;
+            }
+
+            startSendMsg(curMsg);
+            return ;
+        }
+
+        return alert('已经处理完全部消息');
+    }
+
+    // 开始发送常用语
+    function startSendMsg(msg) {
+        // 进入聊天详情
+        msg.click();
+
+        setTimeout(() => {
+            // 打开常用语
+            document.getElementsByClassName('btn-dict')[0].click();
+
+            setTimeout(() => {
+                // 发送第一条常用语
+                document.getElementsByClassName('sentence-panel')[0].childNodes[1].childNodes[0].click()
+
+                console.log("已给 " + msg.parentNode.previousElementSibling.childNodes[0].innerText + " 发送消息");
+
+                setTimeout(() => {
+                    oneClickSendMsg();
+                }, 1000);
+            }, 500);
+        }, 500);
+    }
+
+    // 清除所有的已浏览职位
     function cleanMyBtns() {
         console.log("执行清除");
         let allMyBtns = document.getElementsByClassName('mySendJobBtn');
@@ -114,11 +176,11 @@
         window.scrollTo(0, 0)
     }
 
-    function main() {
-        console.clear();
-
+    // 职位推荐页面处理函数
+    function jobRecommendHandle() {
+        console.log("test:jobRecommendHandle");
         // 先执行一次
-        oneClickSend();
+        oneClickStartChat();
 
         // 外部包裹的盒子
         let startScriptDiv = document.createElement('div');
@@ -138,7 +200,7 @@
         startScriptSpan.onclick = function() {
             cleanMyBtns();
 
-            oneClickSend();
+            oneClickStartChat();
         }
 
         // 锚点查找
@@ -152,6 +214,46 @@
         anchorDom[0].appendChild(startScriptDiv)
         startScriptDiv.appendChild(startScriptDiv2);
         startScriptDiv2.appendChild(startScriptSpan);
+    }
+
+    // 职位沟通页面处理函数
+    function jobChatHandle() {
+        console.log("test:jobChatHandle");
+        // 先执行一次
+        // oneClickSendMsg();
+
+        // 外部包裹的盒子
+        let startScriptDiv = document.createElement('li');
+
+        startScriptDiv.innerHTML = `<li class="dropdown-wrap dropdown-help-and-feedback"><div title="一键批量发送常用语第一条">一键发送</div></li>`
+
+        // 实际点击
+        startScriptDiv.onclick = function() {
+            // cleanMyBtns();
+
+            oneClickSendMsg();
+        }
+
+        // 锚点查找
+        let anchorDom = document.getElementsByClassName('user-nav')
+        if (anchorDom.length < 1) {
+            alert("获取不到锚点位置，确认是否已经改版")
+            return ;
+        }
+
+        // 锚点包含内容
+        anchorDom[0].prepend(startScriptDiv)
+    }
+
+    function main() {
+        let isChatPage = window.location.href.search('web/geek/chat') !== -1;
+        console.clear();
+
+        if (isChatPage) {
+            jobChatHandle();
+        } else {
+            jobRecommendHandle();
+        }
     }
 
     // 防止页面没加载完
