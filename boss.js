@@ -5,7 +5,7 @@
 // @description  try to take over the world!
 // @author       You
 // @match        https://www.zhipin.com/web/geek/job-recommend*
-// @match        https://www.zhipin.com/web/geek/chat
+// @match        https://www.zhipin.com/web/geek/chat*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=zhipin.com
 // @grant        none
 // ==/UserScript==
@@ -20,10 +20,14 @@
 
     // 高亮关键词
     let hightightKeyWords = [
-        "php", "PHP", "前端", "双休", "月休", "全栈", "后端", "技术主管",
+        "php", "PHP", "前端", "全栈", "后端", "技术主管", "小程序开发",
         "程序员", "技术总监", "服务端", "软件开发", "后台开发", "web开发",
-        "开发工程师", "软件工程师", "技术经理", "技术合伙人"
+        "开发工程师", "软件工程师", "技术经理", "技术合伙人", "IT技术支持"
     ];
+    // 设置的打招呼语
+    let greeting = "您好，我对这份工作非常感兴趣，希望可以有机会与您进一步沟通。";
+    // 常用语第一句的匹配
+    let commonSendStrPatten = "您好，我有php处理日活百万数据访问经验";
 
     // 一键发起沟通
     function oneClickStartChat() {
@@ -110,8 +114,6 @@
 
     // 一键发送常用语
     function oneClickSendMsg() {
-        // console.log("执行了oneClickSendMsg函数");
-
         // 所有的消息
         let allMsgs = document.getElementsByClassName('last-msg-text')
 
@@ -127,7 +129,7 @@
             let curMsg = allMsgs[i];
 
             // 已经进行过沟通的，不再发送
-            if (curMsg.innerText != "您好，我对这份工作非常感兴趣，希望可以有机会与您进一步沟通。") {
+            if (curMsg.innerText != greeting) {
                 continue;
             }
 
@@ -149,9 +151,14 @@
 
             setTimeout(() => {
                 // 发送第一条常用语
-                document.getElementsByClassName('sentence-panel')[0].childNodes[1].childNodes[0].click()
+                let commonSend = document.getElementsByClassName('sentence-panel')[0].childNodes[1].childNodes[0];
+                // 检测常用语的值
+                if (commonSend.innerText.indexOf(commonSendStrPatten) === false)
+                    return alert("请将常用语第一条设置为您要发送的内容")
 
-                console.log("已给 " + msg.parentNode.previousElementSibling.childNodes[0].innerText + " 发送消息");
+                commonSend.click()
+
+                console.log("给 " + msg.parentNode.previousElementSibling.childNodes[0].innerText + " 发送消息");
 
                 setTimeout(() => {
                     oneClickSendMsg();
@@ -178,7 +185,6 @@
 
     // 职位推荐页面处理函数
     function jobRecommendHandle() {
-        console.log("test:jobRecommendHandle");
         // 先执行一次
         oneClickStartChat();
 
@@ -218,10 +224,6 @@
 
     // 职位沟通页面处理函数
     function jobChatHandle() {
-        console.log("test:jobChatHandle");
-        // 先执行一次
-        // oneClickSendMsg();
-
         // 外部包裹的盒子
         let startScriptDiv = document.createElement('li');
 
@@ -229,8 +231,6 @@
 
         // 实际点击
         startScriptDiv.onclick = function() {
-            // cleanMyBtns();
-
             oneClickSendMsg();
         }
 
