@@ -14,9 +14,7 @@
     'use strict';
     let countAllJobs = 0;
     let countSendJobs = 0;
-    let countAllMsgs = 0;
     let countSendMsgs = 0;
-    let waitDealMsgs = [];
 
     // 高亮关键词
     let hightightKeyWords = [
@@ -121,8 +119,6 @@
             alert("拿不到消息列表")
             return ;
         }
-        // countAllMsgs += allMsgs.length;
-        // console.log(`已经浏览了${countAllMsgs}个消息，已发送了${countSendMsgs}个常用语`);
 
         for (var i = allMsgs.length - 1; i >= 0; i--) {
             // 当前循环处理的信息
@@ -158,7 +154,10 @@
 
                 commonSend.click()
 
-                console.log("给 " + msg.parentNode.previousElementSibling.childNodes[0].innerText + " 发送消息");
+                countSendJobs += 1;
+
+                let goalBoss = msg.parentNode.previousElementSibling.childNodes[0].innerText;
+                console.log(countSendJobs, "给 " + goalBoss + " 发送消息");
 
                 setTimeout(() => {
                     oneClickSendMsg();
