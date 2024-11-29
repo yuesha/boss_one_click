@@ -27,7 +27,7 @@
     // 设置的打招呼语
     let greeting = "您好，我对这份工作非常感兴趣，希望可以有机会与您进一步沟通。";
     // 常用语第一句的匹配
-    let commonSendStrPatten = "您好，我有php处理日活百万数据访问经验";
+    let commonSendStrPatten = "您好，我拥有全栈开发及相关管理经验";
 
     // 一键发起沟通
     function oneClickStartChat() {
@@ -129,7 +129,7 @@
             let curMsg = allMsgs[i];
 
             // 已经进行过沟通的，不再发送
-            if (curMsg.innerText != greeting) {
+            if (curMsg.innerText.indexOf(greeting) === -1) {
                 continue;
             }
 
