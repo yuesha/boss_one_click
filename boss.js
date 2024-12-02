@@ -2,8 +2,8 @@
 // @name         Boss直聘一键投递按钮
 // @namespace    http://tampermonkey.net/
 // @version      2024-11-01
-// @description  try to take over the world!
-// @author       You
+// @description  点击后一键沟通，一键发送常用语言
+// @author       yuesha
 // @match        https://www.zhipin.com/web/geek/job-recommend*
 // @match        https://www.zhipin.com/web/geek/chat*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=zhipin.com
@@ -30,6 +30,11 @@
     // 一键发起沟通
     function oneClickStartChat() {
         console.log("执行了oneClickStartChat函数");
+        // 是否高亮
+        let isHight = false;
+        // 点击事件
+        let btnCliEven;
+        let btnCliEvens = [];
         // 所有的职位
         let curJobs = document.getElementsByClassName('job-card-footer')
 
@@ -41,6 +46,9 @@
         console.log(`已经浏览了${countAllJobs}个岗位，已沟通了${countSendJobs}个岗位`);
 
         for (var i = curJobs.length - 1; i >= 0; i--) {
+            // 每次循环的默认值都是非高亮
+            isHight = false;
+
             // 当前循环处理的职位信息
             let curJob = curJobs[i];
 
@@ -56,6 +64,7 @@
                     curJobInfo.style.backgroundColor = "lightcoral";
                     curJobName.style.color = "white";
                     curJobName.nextElementSibling.style.color = "white";
+                    isHight = true;
                     break;
                 }
             }
@@ -74,7 +83,7 @@
             curJob.append(btn)
 
             // 点击事件
-            btn.onclick = function() {
+            btnCliEven = function() {
                 // 进入职位详情
                 curJob.click()
 
@@ -107,7 +116,23 @@
                     }
                 }, 500)
             }
+
+            if (isHight) btnCliEvens.push(btnCliEven);
+
+            btn.onclick = btnCliEven;
         }
+
+        handleBtnCliEven(btnCliEvens);
+    }
+
+    function handleBtnCliEven(evens) {
+        let even = evens.pop();
+        if (!even) return ;
+
+        even();
+        setTimeout(() => {
+            handleBtnCliEven(evens);
+        }, 2000)
     }
 
     // 一键发送常用语
@@ -185,7 +210,7 @@
     // 职位推荐页面处理函数
     function jobRecommendHandle() {
         // 先执行一次
-        oneClickStartChat();
+        // oneClickStartChat();
 
         // 外部包裹的盒子
         let startScriptDiv = document.createElement('div');
