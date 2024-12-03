@@ -22,6 +22,11 @@
         "程序员", "技术总监", "服务端", "软件开发", "后台开发", "web开发",
         "开发工程师", "软件工程师", "技术经理", "技术合伙人", "IT技术支持"
     ];
+    // 不允许高亮的关键词
+    let unHightightKeyWords = [
+        'Go', 'go', 'GO', 'Java', 'JAVA', 'java', 'Golang', 'golang',
+        'flutter', 'Flutter', '本科'
+    ];
     // 设置的打招呼语
     let greeting = "您好，我对这份工作非常感兴趣，希望可以有机会与您进一步沟通。";
     // 常用语第一句的匹配
@@ -60,12 +65,18 @@
             // 检索是否含有关键字
             for (var j = hightightKeyWords.length - 1; j >= 0; j--) {
                 if (curJobName.innerText.indexOf(hightightKeyWords[j]) !== -1) {
-                    // 符合条件设置
-                    curJobInfo.style.backgroundColor = "lightcoral";
-                    curJobName.style.color = "white";
-                    curJobName.nextElementSibling.style.color = "white";
                     isHight = true;
                     break;
+                }
+            }
+
+            // 检索是否含有不允许高亮的关键字
+            if (isHight) {
+                for (var j = unHightightKeyWords.length - 1; j >= 0; j--) {
+                    if (curJobName.innerText.indexOf(unHightightKeyWords[j]) !== -1) {
+                        isHight = false;
+                        break;
+                    }
                 }
             }
 
@@ -76,6 +87,13 @@
             btn.style.backgroundColor = "#dbf5f2";
             btn.style.borderRadius = "7px";
             btn.style.padding = "5px";
+
+            if (isHight) {
+                // 符合条件设置
+                curJobInfo.style.backgroundColor = "lightcoral";
+                curJobName.style.color = "white";
+                curJobName.nextElementSibling.style.color = "white";
+            }
 
             btn.setAttribute('class', 'mySendJobBtn')
             btn.innerText = '沟通';
