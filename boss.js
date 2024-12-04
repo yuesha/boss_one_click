@@ -18,14 +18,19 @@
 
     // 高亮关键词
     let hightightKeyWords = [
-        "php", "PHP", "前端", "全栈", "后端", "技术主管", "小程序开发",
-        "程序员", "技术总监", "服务端", "软件开发", "后台开发", "web开发",
-        "开发工程师", "软件工程师", "技术经理", "技术合伙人", "IT技术支持"
+        'php', 'PHP', '前端', '全栈', '后端', '技术主管', '小程序开发',
+        '程序员', '技术总监', '服务端', '软件开发', '后台开发', 'web开发',
+        '开发工程师', '软件工程师', '技术经理', '技术合伙人', 'IT', 'it',
+        'web', '技术部主管', '开发部主管', '网页设计师', '网站设计师',
+        '网站建设', 'uniapp', 'APP', 'app', 'UNIAPP', '技术支持'
     ];
     // 不允许高亮的关键词
     let unHightightKeyWords = [
         'Go', 'go', 'GO', 'Java', 'JAVA', 'java', 'Golang', 'golang',
-        'flutter', 'Flutter', '本科'
+        'flutter', 'Flutter', '本科', 'python', 'Python', 'Angular',
+        '安卓', '苹果', 'IOS', 'Ios', 'ios', 'android', 'Android',
+        'ERP', 'erp', 'rpa', 'RPA', 'delphi', 'React', 'react', 'Laya',
+        '实习生', '运营', 'C#', '单片机', '嵌入式'
     ];
     // 设置的打招呼语
     let greeting = "您好，我对这份工作非常感兴趣，希望可以有机会与您进一步沟通。";
@@ -116,7 +121,7 @@
                         setTimeout(() => {
                             let stayHeres = document.getElementsByClassName('cancel-btn');
                             if (stayHeres.length < 1) {
-                                alert("无法点击留在此页")
+                                alert("无法点击留在此页，检查是否已达到沟通上限")
                                 return ;
                             }
                             // 继续留在本页
@@ -145,7 +150,10 @@
 
     function handleBtnCliEven(evens) {
         let even = evens.pop();
-        if (!even) return ;
+        if (!even) {
+            alert('已将当前页面所有高亮推荐岗位发起沟通');
+            return ;
+        }
 
         even();
         setTimeout(() => {
