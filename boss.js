@@ -15,6 +15,7 @@
     let countAllJobs = 0;
     let countSendJobs = 0;
     let countSendMsgs = 0;
+    let pause = false;
 
     // 高亮关键词
     let hightightKeyWords = [
@@ -30,12 +31,14 @@
         'flutter', 'Flutter', '本科', 'python', 'Python', 'Angular',
         '安卓', '苹果', 'IOS', 'Ios', 'ios', 'android', 'Android',
         'ERP', 'erp', 'rpa', 'RPA', 'delphi', 'React', 'react', 'Laya',
-        '实习生', '运营', 'C#', '单片机', '嵌入式'
+        '实习生', '运营', 'C#', '单片机', '嵌入式', 'kotlin', 'Kotlin',
+        '物联网', 'Erlang', 'erlang', 'net', 'NET', 'C++', 'c++', 'lua',
+        'LUA', 'Lua', 'QT', 'qt', 'Qt', 'SDK', 'sdk'
     ];
     // 设置的打招呼语
     let greeting = "您好，我对这份工作非常感兴趣，希望可以有机会与您进一步沟通。";
     // 常用语第一句的匹配
-    let commonSendStrPatten = "您好，我拥有全栈开发及相关管理经验";
+    let commonSendStrPatten = "您好，我拥有全栈开发及技术管理经验";
 
     // 一键发起沟通
     function oneClickStartChat() {
@@ -107,6 +110,8 @@
 
             // 点击事件
             btnCliEven = function() {
+                if (pause) return ;
+
                 // 进入职位详情
                 curJob.click()
 
@@ -122,6 +127,7 @@
                             let stayHeres = document.getElementsByClassName('cancel-btn');
                             if (stayHeres.length < 1) {
                                 alert("无法点击留在此页，检查是否已达到沟通上限")
+                                pause = true;
                                 return ;
                             }
                             // 继续留在本页
