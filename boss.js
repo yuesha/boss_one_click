@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         Boss直聘一键投递按钮
 // @namespace    http://tampermonkey.net/
-// @version      2024-11-01
-// @description  try to take over the world!
-// @author       You
+// @version      2025-04-30
+// @description  点击后一键沟通，一键发送常用语言
+// @author       yuesha
 // @match        https://www.zhipin.com/web/geek/job-recommend*
+// @match        https://www.zhipin.com/web/geek/jobs*
 // @match        https://www.zhipin.com/web/geek/chat*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=zhipin.com
 // @grant        none
@@ -15,32 +16,55 @@
     let countAllJobs = 0;
     let countSendJobs = 0;
     let countSendMsgs = 0;
+    let pause = false;
 
     // 高亮关键词
     let hightightKeyWords = [
-        "php", "PHP", "前端", "全栈", "后端", "技术主管", "小程序开发",
-        "程序员", "技术总监", "服务端", "软件开发", "后台开发", "web开发",
-        "开发工程师", "软件工程师", "技术经理", "技术合伙人", "IT技术支持"
+        'php', 'PHP', '前端', '全栈', '后端', '主管', '小程序开发',
+        '程序员', '技术总监', '服务端', '软件开发', '后台开发', 'web开发',
+        '技术经理', '技术合伙人', 'IT', 'it', '软件经理', '工程师',
+        'web', '网页设计师', '网站设计师', '技术部负责人', '技术负责人',
+        '网站建设', 'uniapp', 'APP', 'app', 'UNIAPP', '技术支持'
+    ];
+    // 不允许高亮的关键词
+    let unHightightKeyWords = [
+        'Go', 'go', 'GO', 'Java', 'JAVA', 'java', 'Golang', 'golang',
+        'flutter', 'Flutter', '本科', 'python', 'Python', 'Angular',
+        '安卓', '苹果', 'IOS', 'Ios', 'ios', 'android', 'Android',
+        'ERP', 'erp', 'rpa', 'RPA', 'delphi', 'React', 'react', 'Laya',
+        '实习生', '运营', 'C#', '单片机', '嵌入式', 'kotlin', 'Kotlin',
+        '物联网', 'Erlang', 'erlang', 'net', 'NET', 'C++', 'c++', 'lua',
+        'LUA', 'Lua', 'QT', 'qt', 'Qt', 'SDK', 'sdk', 'Ruby', 'ruby',
+        'Three', 'three', '上位机', '助理', 'k8s', '测试', '发货', '拣',
+        '得物', '配送', '生产', '销售', '运维', '美工', '美术'
     ];
     // 设置的打招呼语
     let greeting = "您好，我对这份工作非常感兴趣，希望可以有机会与您进一步沟通。";
     // 常用语第一句的匹配
-    let commonSendStrPatten = "您好，我拥有全栈开发及相关管理经验";
+    let commonSendStrPatten = "您好，我拥有全栈开发及技术管理经验";
 
     // 一键发起沟通
     function oneClickStartChat() {
         console.log("执行了oneClickStartChat函数");
+        // 是否高亮
+        let isHight = false;
+        // 点击事件
+        let btnCliEven;
+        let btnCliEvens = [];
         // 所有的职位
         let curJobs = document.getElementsByClassName('job-card-footer')
 
         if (curJobs.length < 1) {
             alert("拿不到职位列表")
-            return ;
+            return;
         }
         countAllJobs += curJobs.length;
         console.log(`已经浏览了${countAllJobs}个岗位，已沟通了${countSendJobs}个岗位`);
 
         for (var i = curJobs.length - 1; i >= 0; i--) {
+            // 每次循环的默认值都是非高亮
+            isHight = false;
+
             // 当前循环处理的职位信息
             let curJob = curJobs[i];
 
@@ -52,11 +76,18 @@
             // 检索是否含有关键字
             for (var j = hightightKeyWords.length - 1; j >= 0; j--) {
                 if (curJobName.innerText.indexOf(hightightKeyWords[j]) !== -1) {
-                    // 符合条件设置
-                    curJobInfo.style.backgroundColor = "lightcoral";
-                    curJobName.style.color = "white";
-                    curJobName.nextElementSibling.style.color = "white";
+                    isHight = true;
                     break;
+                }
+            }
+
+            // 检索是否含有不允许高亮的关键字
+            if (isHight) {
+                for (var k = unHightightKeyWords.length - 1; k >= 0; k--) {
+                    if (curJobName.innerText.indexOf(unHightightKeyWords[k]) !== -1) {
+                        isHight = false;
+                        break;
+                    }
                 }
             }
 
@@ -68,13 +99,22 @@
             btn.style.borderRadius = "7px";
             btn.style.padding = "5px";
 
+            if (isHight) {
+                // 符合条件设置
+                curJobInfo.style.backgroundColor = "lightcoral";
+                curJobName.style.color = "white";
+                curJobName.nextElementSibling.style.color = "white";
+            }
+
             btn.setAttribute('class', 'mySendJobBtn')
             btn.innerText = '沟通';
             // 添加按钮
             curJob.append(btn)
 
             // 点击事件
-            btn.onclick = function() {
+            btnCliEven = function() {
+                if (pause) return;
+
                 // 进入职位详情
                 curJob.click()
 
@@ -89,8 +129,9 @@
                         setTimeout(() => {
                             let stayHeres = document.getElementsByClassName('cancel-btn');
                             if (stayHeres.length < 1) {
-                                alert("无法点击留在此页")
-                                return ;
+                                alert("无法点击留在此页，检查是否已达到沟通上限")
+                                pause = true;
+                                return;
                             }
                             // 继续留在本页
                             stayHeres[0].click()
@@ -107,7 +148,27 @@
                     }
                 }, 500)
             }
+
+            if (isHight) btnCliEvens.push(btnCliEven);
+
+            btn.onclick = btnCliEven;
+
         }
+
+        handleBtnCliEven(btnCliEvens);
+    }
+
+    function handleBtnCliEven(evens) {
+        let even = evens.pop();
+        if (!even) {
+            alert('已将当前页面所有高亮推荐岗位发起沟通');
+            return;
+        }
+
+        even();
+        setTimeout(() => {
+            handleBtnCliEven(evens);
+        }, 2000)
     }
 
     // 一键发送常用语
@@ -117,7 +178,7 @@
 
         if (allMsgs.length < 1) {
             alert("拿不到消息列表")
-            return ;
+            return;
         }
 
         for (var i = allMsgs.length - 1; i >= 0; i--) {
@@ -130,7 +191,8 @@
             }
 
             startSendMsg(curMsg);
-            return ;
+            return;
+
         }
 
         return alert('已经处理完全部消息');
@@ -163,6 +225,7 @@
                     oneClickSendMsg();
                 }, 1000);
             }, 500);
+
         }, 500);
     }
 
@@ -171,7 +234,7 @@
         console.log("执行清除");
         let allMyBtns = document.getElementsByClassName('mySendJobBtn');
         if (allMyBtns.length < 1) {
-            return ;
+            return;
         }
 
         for (var i = allMyBtns.length - 1; i >= 0; i--) {
@@ -185,7 +248,7 @@
     // 职位推荐页面处理函数
     function jobRecommendHandle() {
         // 先执行一次
-        oneClickStartChat();
+        // oneClickStartChat();
 
         // 外部包裹的盒子
         let startScriptDiv = document.createElement('div');
@@ -196,7 +259,6 @@
         let startScriptDiv2 = document.createElement('div');
         startScriptDiv2.className = 'current-select';
 
-
         let startScriptSpan = document.createElement('span');
         startScriptSpan.style.color = 'white';
         startScriptSpan.innerText = '点击开始执行脚本';
@@ -206,13 +268,14 @@
             cleanMyBtns();
 
             oneClickStartChat();
+
         }
 
         // 锚点查找
-        let anchorDom = document.getElementsByClassName('recommend-search-more')
+        let anchorDom = document.getElementsByClassName('c-filter-condition')
         if (anchorDom.length < 1) {
             alert("获取不到锚点位置，确认是否已经改版")
-            return ;
+            return;
         }
 
         // 锚点包含内容
@@ -237,7 +300,7 @@
         let anchorDom = document.getElementsByClassName('user-nav')
         if (anchorDom.length < 1) {
             alert("获取不到锚点位置，确认是否已经改版")
-            return ;
+            return;
         }
 
         // 锚点包含内容
