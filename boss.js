@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Boss直聘一键投递按钮
 // @namespace    http://tampermonkey.net/
-// @version      2025-04-30
+// @version      2025-05-12
 // @description  点击后一键沟通，一键发送常用语言
 // @author       yuesha
 // @match        https://www.zhipin.com/web/geek/job-recommend*
@@ -18,7 +18,7 @@
     let countSendMsgs = 0;
     let pause = false;
 
-    // 高亮关键词
+    // 高亮关键词条件
     let hightightKeyWords = [
         'php', 'PHP', '前端', '全栈', '后端', '主管', '小程序开发',
         '程序员', '技术总监', '服务端', '软件开发', '后台开发', 'web开发',
@@ -36,7 +36,8 @@
         '物联网', 'Erlang', 'erlang', 'net', 'NET', 'C++', 'c++', 'lua',
         'LUA', 'Lua', 'QT', 'qt', 'Qt', 'SDK', 'sdk', 'Ruby', 'ruby',
         'Three', 'three', '上位机', '助理', 'k8s', '测试', '发货', '拣',
-        '得物', '配送', '生产', '销售', '运维', '美工', '美术'
+        '得物', '配送', '生产', '销售', '运维', '美工', '美术', '弱电',
+        '电气'
     ];
     // 设置的打招呼语
     let greeting = "您好，我对这份工作非常感兴趣，希望可以有机会与您进一步沟通。";
