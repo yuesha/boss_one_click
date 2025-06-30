@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Boss直聘一键投递按钮
 // @namespace    http://tampermonkey.net/
-// @version      2025-05-12
+// @version      2025-06-30
 // @description  点击后一键沟通，一键发送常用语言
 // @author       yuesha
 // @match        https://www.zhipin.com/web/geek/job-recommend*
@@ -45,9 +45,59 @@
     // 常用语第一句的匹配
     let commonSendStrPatten = "您好，我拥有全栈开发及技术管理经验";
 
+    // 创建右下角弹框
+    function createAlertBox() {
+        let alertBox = document.createElement('div');
+        alertBox.id = 'custom-alert-box';
+        alertBox.style.position = 'fixed';
+        alertBox.style.bottom = '20px';
+        alertBox.style.right = '20px';
+        alertBox.style.width = '300px';
+        alertBox.style.maxHeight = '200px';
+        alertBox.style.overflowY = 'auto';
+        alertBox.style.backgroundColor = '#fff';
+        alertBox.style.border = '1px solid #ccc';
+        alertBox.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.1)';
+        alertBox.style.zIndex = '9999';
+
+        let closeBtn = document.createElement('button');
+        closeBtn.innerText = 'X';
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.top = '5px';
+        closeBtn.style.right = '5px';
+        closeBtn.style.border = 'none';
+        closeBtn.style.backgroundColor = 'transparent';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.onclick = function() {
+            alertBox.style.display = 'none';
+        };
+
+        let contentDiv = document.createElement('div');
+        contentDiv.id = 'custom-alert-content';
+        contentDiv.style.padding = '10px';
+
+        alertBox.appendChild(closeBtn);
+        alertBox.appendChild(contentDiv);
+        document.body.appendChild(alertBox);
+        return alertBox;
+    }
+
+    let alertBox = createAlertBox();
+    function customAlert(msg, isRed = false) {
+        let now = new Date();
+        let timeString = now.toLocaleTimeString();
+        let contentDiv = document.getElementById('custom-alert-content');
+        let p = document.createElement('p');
+        if (isRed) {
+            p.style.color = 'red';
+        }
+        p.innerText = `${timeString} ${msg}`;
+        contentDiv.insertBefore(p, contentDiv.firstChild); // 在顶部输出
+    }
+
     // 一键发起沟通
     function oneClickStartChat() {
-        console.log("执行了oneClickStartChat函数");
+        customAlert("执行了oneClickStartChat函数", true);
         // 是否高亮
         let isHight = false;
         // 点击事件
@@ -57,11 +107,11 @@
         let curJobs = document.getElementsByClassName('job-card-footer')
 
         if (curJobs.length < 1) {
-            alert("拿不到职位列表")
+            customAlert("拿不到职位列表")
             return;
         }
         countAllJobs += curJobs.length;
-        console.log(`已经浏览了${countAllJobs}个岗位，已沟通了${countSendJobs}个岗位`);
+        customAlert(`已经浏览了${countAllJobs}个岗位，已沟通了${countSendJobs}个岗位`);
 
         for (var i = curJobs.length - 1; i >= 0; i--) {
             // 每次循环的默认值都是非高亮
@@ -131,7 +181,7 @@
                         setTimeout(() => {
                             let stayHeres = document.getElementsByClassName('cancel-btn');
                             if (stayHeres.length < 1) {
-                                alert("无法点击留在此页，检查是否已达到沟通上限")
+                                customAlert("无法点击留在此页，检查是否已达到沟通上限")
                                 pause = true;
                                 return;
                             }
@@ -139,14 +189,14 @@
                             stayHeres[0].click()
 
                             toudiBtn.innerText = "已发起沟通，继续沟通"
-                            console.log("投递成功")
+                            customAlert("投递成功")
 
                             countSendJobs += 1;
                             btn.style.backgroundColor = "#fff";
                         }, 500)
                     } else {
                         btn.style.backgroundColor = "#fff";
-                        console.log("此岗位已沟通过")
+                        customAlert("此岗位已沟通过")
                     }
                 }, 500)
             }
@@ -162,7 +212,7 @@
     function handleBtnCliEven(evens) {
         let even = evens.pop();
         if (!even) {
-            alert('已将当前页面所有高亮推荐岗位发起沟通');
+            customAlert('已将当前页面所有高亮推荐岗位发起沟通', true);
             return;
         }
 
@@ -178,7 +228,7 @@
         let allMsgs = document.getElementsByClassName('last-msg-text')
 
         if (allMsgs.length < 1) {
-            alert("拿不到消息列表")
+            customAlert("拿不到消息列表")
             return;
         }
 
@@ -193,10 +243,9 @@
 
             startSendMsg(curMsg);
             return;
-
         }
 
-        return alert('已经处理完全部消息');
+        customAlert('已经处理完全部消息', true);
     }
 
     // 开始发送常用语
@@ -206,21 +255,37 @@
 
         setTimeout(() => {
             // 打开常用语
-            document.getElementsByClassName('btn-dict')[0].click();
+            let btnDict = document.getElementsByClassName('btn-dict')[0];
+            if (!btnDict) {
+                customAlert("未找到打开常用语按钮");
+                return;
+            }
+            btnDict.click();
 
             setTimeout(() => {
                 // 发送第一条常用语
-                let commonSend = document.getElementsByClassName('sentence-panel')[0].childNodes[1].childNodes[0];
+                let sentencePanel = document.getElementsByClassName('sentence-panel')[0];
+                if (!sentencePanel) {
+                    customAlert("未找到常用语面板");
+                    return;
+                }
+                let commonSend = sentencePanel.childNodes[1].childNodes[0];
+                if (!commonSend) {
+                    customAlert("未找到第一条常用语");
+                    return;
+                }
                 // 检测常用语的值
-                if (commonSend.innerText.indexOf(commonSendStrPatten) === false)
-                    return alert("请将常用语第一条设置为您要发送的内容")
+                if (commonSend.innerText.indexOf(commonSendStrPatten) === -1) {
+                    customAlert("请将常用语第一条设置为您要发送的内容");
+                    return;
+                }
 
                 commonSend.click()
 
                 countSendJobs += 1;
 
                 let goalBoss = msg.parentNode.previousElementSibling.childNodes[0].innerText;
-                console.log(countSendJobs, "给 " + goalBoss + " 发送消息");
+                customAlert(`${countSendJobs} 给 ${goalBoss} 发送消息`);
 
                 setTimeout(() => {
                     oneClickSendMsg();
@@ -231,7 +296,7 @@
 
     // 清除所有的已浏览职位
     function cleanMyBtns() {
-        console.log("执行清除");
+        customAlert("执行清除");
         let allMyBtns = document.getElementsByClassName('mySendJobBtn');
         if (allMyBtns.length < 1) {
             return;
@@ -273,7 +338,7 @@
         // 锚点查找
         let anchorDom = document.getElementsByClassName('c-filter-condition')
         if (anchorDom.length < 1) {
-            alert("获取不到锚点位置，确认是否已经改版，可联系脚本作者更新")
+            customAlert("获取不到锚点位置，确认是否已经改版，可联系脚本作者更新")
             return;
         }
 
@@ -298,7 +363,7 @@
         // 锚点查找
         let anchorDom = document.getElementsByClassName('user-nav')
         if (anchorDom.length < 1) {
-            alert("获取不到锚点位置，确认是否已经改版，可联系脚本作者更新")
+            customAlert("获取不到锚点位置，确认是否已经改版，可联系脚本作者更新")
             return;
         }
 
