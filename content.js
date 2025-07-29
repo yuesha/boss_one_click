@@ -1,22 +1,103 @@
-// ==UserScript==
-// @name         Boss直聘一键投递按钮
-// @namespace    http://tampermonkey.net/
-// @version      2025-06-30
-// @description  点击后一键沟通，一键发送常用语言
-// @author       yuesha
-// @match        https://www.zhipin.com/web/geek/job-recommend*
-// @match        https://www.zhipin.com/web/geek/jobs*
-// @match        https://www.zhipin.com/web/geek/chat*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=zhipin.com
-// @grant        none
-// ==/UserScript==
+// content.js
+
+// 向background.js发送消息，确认注入成功
+chrome.runtime.sendMessage({action: 'scriptInjected'}, (response) => {
+    if (response && response.success) {
+        console.log('内容脚本已成功注入');
+        sendLog('内容脚本已成功注入');
+    }
+});
+
+// 向popup发送日志
+function sendLog(message, isError = false) {
+    chrome.runtime.sendMessage({
+        action: 'log',
+        message: message,
+        isError: isError
+    });
+    console.log(isError ? `[ERROR] ${message}` : message);
+}
+
+// 消息监听器
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    switch(request.action) {
+        case 'startApply':
+            if (isRunning) {
+                sendLog('已有操作在运行，请先停止', true);
+                sendResponse({success: false});
+                return;
+            }
+            isRunning = true;
+            currentOperation = 'apply';
+            sendLog('开始一键投递');
+            oneClickStartChat();
+            sendResponse({success: true});
+            break;
+        case 'startChat':
+            if (isRunning) {
+                sendLog('已有操作在运行，请先停止', true);
+                sendResponse({success: false});
+                return;
+            }
+            isRunning = true;
+            currentOperation = 'chat';
+            sendLog('开始一键沟通');
+            oneClickSendMsg();
+            sendResponse({success: true});
+            break;
+        case 'stop':
+            isRunning = false;
+            currentOperation = null;
+            sendLog('已停止所有操作');
+            sendResponse({success: true});
+            break;
+        default:
+            sendResponse({success: false});
+    }
+});
 
 (function() {
     'use strict';
-    let countAllJobs = 0;
-    let countSendJobs = 0;
-    let countSendMsgs = 0;
-    let pause = false;
+
+    // 初始化统计数据
+    function initStatistics() {
+        const today = new Date().toISOString().split('T')[0]; // 格式: YYYY-MM-DD
+        let stats = JSON.parse(localStorage.getItem('bossHelperStats') || '{}');
+        
+        // 如果今天没有数据，初始化
+        if (!stats[today]) {
+            stats[today] = {
+                countAllJobs: 0,
+                countSendJobs: 0,
+                countSendMsgs: 0
+            };
+        }
+        
+        // 从localStorage加载今天的数据
+        window.countAllJobs = stats[today].countAllJobs;
+        window.countSendJobs = stats[today].countSendJobs;
+        window.countSendMsgs = stats[today].countSendMsgs;
+        window.isRunning = false;
+        window.currentOperation = null;
+        window.today = today;
+    }
+    
+    // 保存统计数据到localStorage
+    function saveStatistics() {
+        let stats = JSON.parse(localStorage.getItem('bossHelperStats') || '{}');
+        stats[window.today] = {
+            countAllJobs: window.countAllJobs,
+            countSendJobs: window.countSendJobs,
+            countSendMsgs: window.countSendMsgs
+        };
+        localStorage.setItem('bossHelperStats', JSON.stringify(stats));
+        
+        // 通知popup更新统计信息
+        chrome.runtime.sendMessage({action: 'updateStats'});
+    }
+    
+    // 初始化统计数据
+    initStatistics();
 
     // 高亮关键词条件
     let hightightKeyWords = [
@@ -41,62 +122,17 @@
         '电气'
     ];
     // 设置的打招呼语
-    let greeting = "您好，我对这份工作非常感兴趣，希望可以有机会与您进一步沟通。";
+    let greeting = "你好";
     // 常用语第一句的匹配
     let commonSendStrPatten = "您好，我拥有全栈开发及技术管理经验";
 
-    // 创建右下角弹框
-    function createAlertBox() {
-        let alertBox = document.createElement('div');
-        alertBox.id = 'custom-alert-box';
-        alertBox.style.position = 'fixed';
-        alertBox.style.bottom = '20px';
-        alertBox.style.right = '20px';
-        alertBox.style.width = '300px';
-        alertBox.style.maxHeight = '200px';
-        alertBox.style.overflowY = 'auto';
-        alertBox.style.backgroundColor = '#fff';
-        alertBox.style.border = '1px solid #ccc';
-        alertBox.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.1)';
-        alertBox.style.zIndex = '9999';
-
-        let closeBtn = document.createElement('button');
-        closeBtn.innerText = 'X';
-        closeBtn.style.position = 'absolute';
-        closeBtn.style.top = '5px';
-        closeBtn.style.right = '5px';
-        closeBtn.style.border = 'none';
-        closeBtn.style.backgroundColor = 'transparent';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.onclick = function() {
-            alertBox.style.display = 'none';
-        };
-
-        let contentDiv = document.createElement('div');
-        contentDiv.id = 'custom-alert-content';
-        contentDiv.style.padding = '10px';
-
-        alertBox.appendChild(closeBtn);
-        alertBox.appendChild(contentDiv);
-        document.body.appendChild(alertBox);
-        return alertBox;
-    }
-
-    let alertBox = createAlertBox();
+    // 移除旧的弹框代码，使用popup日志系统
     function customAlert(msg, isRed = false) {
-        let now = new Date();
-        let timeString = now.toLocaleTimeString();
-        let contentDiv = document.getElementById('custom-alert-content');
-        let p = document.createElement('p');
-        if (isRed) {
-            p.style.color = 'red';
-        }
-        p.innerText = `${timeString} ${msg}`;
-        contentDiv.insertBefore(p, contentDiv.firstChild); // 在顶部输出
+        sendLog(msg, isRed);
     }
 
     // 一键发起沟通
-    function oneClickStartChat() {
+    window.oneClickStartChat = function() {
         customAlert("执行了oneClickStartChat函数", true);
         // 是否高亮
         let isHight = false;
@@ -165,7 +201,7 @@
 
             // 点击事件
             btnCliEven = function() {
-                if (pause) return;
+                if (!isRunning) return;
 
                 // 进入职位详情
                 curJob.click()
@@ -182,7 +218,7 @@
                             let stayHeres = document.getElementsByClassName('cancel-btn');
                             if (stayHeres.length < 1) {
                                 customAlert("无法点击留在此页，检查是否已达到沟通上限")
-                                pause = true;
+                                isRunning = false;
                                 return;
                             }
                             // 继续留在本页
@@ -192,6 +228,7 @@
                             customAlert("投递成功")
 
                             countSendJobs += 1;
+                    saveStatistics();
                             btn.style.backgroundColor = "#fff";
                         }, 500)
                     } else {
@@ -203,27 +240,33 @@
 
             if (isHight) btnCliEvens.push(btnCliEven);
 
-            btn.onclick = btnCliEven;
+            btn.addEventListener('click', btnCliEven);
         }
 
         handleBtnCliEven(btnCliEvens);
     }
 
     function handleBtnCliEven(evens) {
-        let even = evens.pop();
-        if (!even) {
-            customAlert('已将当前页面所有高亮推荐岗位发起沟通', true);
-            return;
+            if (!isRunning) {
+                customAlert('操作已停止', true);
+                return;
+            }
+
+            let even = evens.pop();
+            if (!even) {
+                customAlert('已将当前页面所有高亮推荐岗位发起沟通', true);
+                isRunning = false;
+                return;
+            }
+
+            even();
+            setTimeout(() => {
+                handleBtnCliEven(evens);
+            }, 2000)
         }
 
-        even();
-        setTimeout(() => {
-            handleBtnCliEven(evens);
-        }, 2000)
-    }
-
     // 一键发送常用语
-    function oneClickSendMsg() {
+      window.oneClickSendMsg = function() {
         // 所有的消息
         let allMsgs = document.getElementsByClassName('last-msg-text')
 
@@ -250,49 +293,61 @@
 
     // 开始发送常用语
     function startSendMsg(msg) {
-        // 进入聊天详情
-        msg.click();
-
-        setTimeout(() => {
-            // 打开常用语
-            let btnDict = document.getElementsByClassName('btn-dict')[0];
-            if (!btnDict) {
-                customAlert("未找到打开常用语按钮");
+            if (!isRunning) {
+                customAlert('操作已停止', true);
                 return;
             }
-            btnDict.click();
+
+            // 进入聊天详情
+            msg.click();
 
             setTimeout(() => {
-                // 发送第一条常用语
-                let sentencePanel = document.getElementsByClassName('sentence-panel')[0];
-                if (!sentencePanel) {
-                    customAlert("未找到常用语面板");
+                if (!isRunning) return;
+
+                // 打开常用语
+                let btnDict = document.getElementsByClassName('btn-dict')[0];
+                if (!btnDict) {
+                    customAlert("未找到打开常用语按钮");
                     return;
                 }
-                let commonSend = sentencePanel.childNodes[1].childNodes[0];
-                if (!commonSend) {
-                    customAlert("未找到第一条常用语");
-                    return;
-                }
-                // 检测常用语的值
-                if (commonSend.innerText.indexOf(commonSendStrPatten) === -1) {
-                    customAlert("请将常用语第一条设置为您要发送的内容");
-                    return;
-                }
-
-                commonSend.click()
-
-                countSendJobs += 1;
-
-                let goalBoss = msg.parentNode.previousElementSibling.childNodes[0].innerText;
-                customAlert(`${countSendJobs} 给 ${goalBoss} 发送消息`);
+                btnDict.click();
 
                 setTimeout(() => {
-                    oneClickSendMsg();
-                }, 1000);
+                    if (!isRunning) return;
+
+                    // 发送第一条常用语
+                    let sentencePanel = document.getElementsByClassName('sentence-panel')[0];
+                    if (!sentencePanel) {
+                        customAlert("未找到常用语面板");
+                        return;
+                    }
+                    let commonSend = sentencePanel.childNodes[1].childNodes[0];
+                    if (!commonSend) {
+                        customAlert("未找到第一条常用语");
+                        return;
+                    }
+                    // 检测常用语的值
+                    if (commonSend.innerText.indexOf(commonSendStrPatten) === -1) {
+                        customAlert("请将常用语第一条设置为您要发送的内容");
+                        return;
+                    }
+
+                    commonSend.click()
+
+                    countSendJobs += 1;
+                    saveStatistics();
+
+                    let goalBoss = msg.parentNode.previousElementSibling.childNodes[0].innerText;
+                    customAlert(`${countSendJobs} 给 ${goalBoss} 发送消息`);
+
+                    setTimeout(() => {
+                        if (isRunning) {
+                            oneClickSendMsg();
+                        }
+                    }, 1000);
+                }, 500);
             }, 500);
-        }, 500);
-    }
+        }
 
     // 清除所有的已浏览职位
     function cleanMyBtns() {
@@ -312,63 +367,12 @@
 
     // 职位推荐页面处理函数
     function jobRecommendHandle() {
-        // 先执行一次
-        // oneClickStartChat();
-
-        // 外部包裹的盒子
-        let startScriptDiv = document.createElement('div');
-        startScriptDiv.className = 'condition-filter-select';
-        startScriptDiv.style.backgroundColor = 'lightcoral';
-
-        // 外部包裹的盒子2
-        let startScriptDiv2 = document.createElement('div');
-        startScriptDiv2.className = 'current-select';
-
-        let startScriptSpan = document.createElement('span');
-        startScriptSpan.style.color = 'white';
-        startScriptSpan.innerText = '点击开始执行脚本';
-
-        // 实际点击
-        startScriptSpan.onclick = function() {
-            cleanMyBtns();
-
-            oneClickStartChat();
-        }
-
-        // 锚点查找
-        let anchorDom = document.getElementsByClassName('c-filter-condition')
-        if (anchorDom.length < 1) {
-            customAlert("获取不到锚点位置，确认是否已经改版，可联系脚本作者更新")
-            return;
-        }
-
-        // 锚点包含内容
-        anchorDom[0].appendChild(startScriptDiv)
-        startScriptDiv.appendChild(startScriptDiv2);
-        startScriptDiv2.appendChild(startScriptSpan);
+        // 保留空函数以维持兼容性
     }
 
     // 职位沟通页面处理函数
     function jobChatHandle() {
-        // 外部包裹的盒子
-        let startScriptDiv = document.createElement('li');
-
-        startScriptDiv.innerHTML = `<li class="dropdown-wrap dropdown-help-and-feedback"><div title="一键批量发送常用语第一条">一键发送</div></li>`
-
-        // 实际点击
-        startScriptDiv.onclick = function() {
-            oneClickSendMsg();
-        }
-
-        // 锚点查找
-        let anchorDom = document.getElementsByClassName('user-nav')
-        if (anchorDom.length < 1) {
-            customAlert("获取不到锚点位置，确认是否已经改版，可联系脚本作者更新")
-            return;
-        }
-
-        // 锚点包含内容
-        anchorDom[0].prepend(startScriptDiv)
+        // 保留空函数以维持兼容性
     }
 
     function main() {
